@@ -1,4 +1,3 @@
-use std::mem::MaybeUninit;
 use std::os::raw::c_int;
 
 #[link(name = "mcl", kind = "static")]
@@ -9,25 +8,25 @@ use std::os::raw::c_int;
 #[allow(non_snake_case)]
 extern "C" {
     // global functions
-	fn sheInit(curve:c_int, compiledTimeVar: c_int) -> c_int;
-	fn sheSecretKeySetByCSPRNG(sec: *mut SecretKey) -> c_int;
-	fn sheGetPublicKey(pubkey: *mut PublicKey, sec: *const SecretKey);
-	fn sheEncG1(c: *mut CipherTextG1, pubkey: *const PublicKey, m: i64) -> c_int;
-	fn sheEncG2(c: *mut CipherTextG2, pubkey: *const PublicKey, m: i64) -> c_int;
-	fn sheEncGT(c: *mut CipherTextGT, pubkey: *const PublicKey, m: i64) -> c_int;
-	fn sheDecG1(m: *mut i64, sec: *const SecretKey, c: *const CipherTextG1) -> c_int;
-	fn sheDecG2(m: *mut i64, sec: *const SecretKey, c: *const CipherTextG2) -> c_int;
-	fn sheDecGT(m: *mut i64, sec: *const SecretKey, c: *const CipherTextGT) -> c_int;
-	fn sheAddG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
-	fn sheAddG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
-	fn sheAddGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
-	fn sheSubG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
-	fn sheSubG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
-	fn sheSubGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
-	fn sheMulG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: i64) -> c_int;
-	fn sheMulG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: i64) -> c_int;
-	fn sheMulGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: i64) -> c_int;
-	fn sheMul(c: *mut CipherTextGT, x: *const CipherTextG1, y: *const CipherTextG2) -> c_int;
+    fn sheInit(curve: c_int, compiledTimeVar: c_int) -> c_int;
+    fn sheSecretKeySetByCSPRNG(sec: *mut SecretKey) -> c_int;
+    fn sheGetPublicKey(pubkey: *mut PublicKey, sec: *const SecretKey);
+    fn sheEncG1(c: *mut CipherTextG1, pubkey: *const PublicKey, m: i64) -> c_int;
+    fn sheEncG2(c: *mut CipherTextG2, pubkey: *const PublicKey, m: i64) -> c_int;
+    fn sheEncGT(c: *mut CipherTextGT, pubkey: *const PublicKey, m: i64) -> c_int;
+    fn sheDecG1(m: *mut i64, sec: *const SecretKey, c: *const CipherTextG1) -> c_int;
+    fn sheDecG2(m: *mut i64, sec: *const SecretKey, c: *const CipherTextG2) -> c_int;
+    fn sheDecGT(m: *mut i64, sec: *const SecretKey, c: *const CipherTextGT) -> c_int;
+    fn sheAddG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
+    fn sheAddG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
+    fn sheAddGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
+    fn sheSubG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
+    fn sheSubG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
+    fn sheSubGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
+    fn sheMulG1(c: *mut CipherTextG1, x: *const CipherTextG1, y: i64) -> c_int;
+    fn sheMulG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: i64) -> c_int;
+    fn sheMulGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: i64) -> c_int;
+    fn sheMul(c: *mut CipherTextGT, x: *const CipherTextG1, y: *const CipherTextG2) -> c_int;
 }
 
 #[allow(non_camel_case_types)]
@@ -36,28 +35,27 @@ pub enum CurveType {
     BN381 = 1,
     SNARK = 4,
     BLS12_381 = 5,
-	SECP192K1 = 100,
-	SECP224K1 = 101,
-	SECP256K1 = 102,
-	NIST_P192 = 105,
-	NIST_P224 = 106,
-	NIST_P256 = 107,
+    SECP192K1 = 100,
+    SECP224K1 = 101,
+    SECP256K1 = 102,
+    NIST_P192 = 105,
+    NIST_P224 = 106,
+    NIST_P256 = 107,
 }
 
 const MCLBN_FP_UNIT_SIZE: usize = 6;
 const MCLBN_FR_UNIT_SIZE: usize = 4;
-const FR_SIZE : usize = MCLBN_FR_UNIT_SIZE;
-const G1_SIZE : usize = MCLBN_FP_UNIT_SIZE * 3;
-const G2_SIZE : usize = MCLBN_FP_UNIT_SIZE * 6;
-const GT_SIZE : usize = MCLBN_FP_UNIT_SIZE * 12;
+const FR_SIZE: usize = MCLBN_FR_UNIT_SIZE;
+const G1_SIZE: usize = MCLBN_FP_UNIT_SIZE * 3;
+const G2_SIZE: usize = MCLBN_FP_UNIT_SIZE * 6;
+const GT_SIZE: usize = MCLBN_FP_UNIT_SIZE * 12;
 
-const SEC_SIZE : usize = FR_SIZE * 2;
-const PUB_SIZE : usize = G1_SIZE + G2_SIZE;
-const G1_CIPHER_SIZE : usize= G1_SIZE * 2;
-const G2_CIPHER_SIZE : usize= G2_SIZE * 2;
-const GT_CIPHER_SIZE : usize= GT_SIZE * 4;
-const MCLBN_COMPILED_TIME_VAR: c_int =
-    (MCLBN_FR_UNIT_SIZE * 10 + MCLBN_FP_UNIT_SIZE) as c_int;
+const SEC_SIZE: usize = FR_SIZE * 2;
+const PUB_SIZE: usize = G1_SIZE + G2_SIZE;
+const G1_CIPHER_SIZE: usize = G1_SIZE * 2;
+const G2_CIPHER_SIZE: usize = G2_SIZE * 2;
+const GT_CIPHER_SIZE: usize = GT_SIZE * 4;
+const MCLBN_COMPILED_TIME_VAR: c_int = (MCLBN_FR_UNIT_SIZE * 10 + MCLBN_FP_UNIT_SIZE) as c_int;
 
 macro_rules! common_impl {
     ($t:ty) => {
@@ -211,12 +209,12 @@ common_impl![CipherTextG2];
 common_impl![CipherTextGT];
 
 impl SecretKey {
-	pub fn set_by_csprng(&mut self) {
-		if !unsafe { sheSecretKeySetByCSPRNG(self) == 0 } {
-			panic!("sheSecretKeySetByCSPRNG")
-		}
-	}
- pub fn get_publickey(&self) -> PublicKey {
+    pub fn set_by_csprng(&mut self) {
+        if !unsafe { sheSecretKeySetByCSPRNG(self) == 0 } {
+            panic!("sheSecretKeySetByCSPRNG")
+        }
+    }
+    pub fn get_publickey(&self) -> PublicKey {
         let mut v = unsafe { PublicKey::uninit() };
         unsafe {
             sheGetPublicKey(&mut v, self);
@@ -236,4 +234,3 @@ serialize_impl![
 pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
 }
-
