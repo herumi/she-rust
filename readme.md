@@ -1,6 +1,6 @@
 # she for Rust (under construction)
 
-This is a wrapper library of [mcl/she](https://github.com/herumi/mcl/include/she.://github.com/herumi/mcl/blob/master/include/mcl/she.h),
+This is a wrapper library of [mcl/she](https://github.com/herumi/mcl/blob/master/include/mcl/she.h),
 - which can add two ciphertexts many times, and
 - can multiply two ciphertexts once.
 
