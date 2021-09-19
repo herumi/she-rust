@@ -205,6 +205,14 @@ pub struct CipherTextGT {
 }
 
 common_impl![SecretKey];
+
+impl SecretKey {
+	pub fn set_by_csprng(&mut self) {
+		if !unsafe { sheSecretKeySetByCSPRNG(self) == 0 } {
+			panic!("sheSecretKeySetByCSPRNG")
+		}
+	}
+}
 /*
 serialize_impl![
     Fp,

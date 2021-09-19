@@ -12,4 +12,6 @@ fn test() {
     assert_eq!(mem::size_of::<GT>(), 48 * 12);
     assert!(init(CurveType::BLS12_381));
 
+	let mut sec = unsafe { SecretKey::uninit() };
+	sec.set_by_csprng();
 }
