@@ -42,6 +42,14 @@ pub enum CurveType {
     NIST_P224 = 106,
     NIST_P256 = 107,
 }
+#[derive(Debug, PartialEq, Clone)]
+/// `SheError` type for error
+pub enum SheError {
+    /// can't decrypt
+    CantDecrypt,
+    /// internal error
+    InternalError,
+}
 
 const MCLBN_FP_UNIT_SIZE: usize = 6;
 const MCLBN_FR_UNIT_SIZE: usize = 4;
@@ -68,57 +76,6 @@ macro_rules! common_impl {
             }
             pub fn clear(&mut self) {
                 *self = <$t>::zero()
-            }
-        }
-    };
-}
-
-macro_rules! serialize_impl {
-    ($t:ty, $size:expr, $serialize_fn:ident, $deserialize_fn:ident) => {
-        impl $t {
-            pub fn deserialize(&mut self, buf: &[u8]) -> bool {
-                unsafe { $deserialize_fn(self, buf.as_ptr(), buf.len()) > 0 }
-            }
-            pub fn serialize(&self) -> Vec<u8> {
-                let size = unsafe { $size } as usize;
-                let mut buf: Vec<u8> = Vec::with_capacity(size);
-                let n: usize;
-                unsafe {
-                    n = $serialize_fn(buf.as_mut_ptr(), size, self);
-                }
-                if n == 0 {
-                    panic!("serialize");
-                }
-                unsafe {
-                    buf.set_len(n);
-                }
-                buf
-            }
-        }
-    };
-}
-
-macro_rules! add_op_impl {
-    ($t:ty, $add_fn:ident, $sub_fn:ident, $neg_fn:ident) => {
-        impl $t {
-            pub fn add(z: &mut $t, x: &$t, y: &$t) {
-                unsafe { $add_fn(z, x, y) }
-            }
-            pub fn sub(z: &mut $t, x: &$t, y: &$t) {
-                unsafe { $sub_fn(z, x, y) }
-            }
-            pub fn neg(y: &mut $t, x: &$t) {
-                unsafe { $neg_fn(y, x) }
-            }
-        }
-    };
-}
-
-macro_rules! field_mul_op_impl {
-    ($t:ty, $mul_fn:ident, $div_fn:ident, $inv_fn:ident, $sqr_fn:ident) => {
-        impl $t {
-            pub fn mul(z: &mut $t, x: &$t, y: &$t) {
-                unsafe { $mul_fn(z, x, y) }
             }
         }
     };
@@ -221,6 +178,38 @@ impl SecretKey {
         }
         v
     }
+    pub fn dec(&self, c: *const CipherTextG1) -> Result<i64, SheError> {
+        let mut v: i64 = 0;
+        if unsafe { sheDecG1(&mut v, self, c) } == 0 {
+            return Ok(v);
+        } else {
+            Err(SheError::CantDecrypt)
+        }
+    }
+}
+
+impl PublicKey {
+    pub fn enc_g1(&self, m: i64) -> CipherTextG1 {
+        let mut v = unsafe { CipherTextG1::uninit() };
+        unsafe {
+            sheEncG1(&mut v, self, m);
+        }
+        v
+    }
+    pub fn enc_g2(&self, m: i64) -> CipherTextG2 {
+        let mut v = unsafe { CipherTextG2::uninit() };
+        unsafe {
+            sheEncG2(&mut v, self, m);
+        }
+        v
+    }
+    pub fn enc_gt(&self, m: i64) -> CipherTextGT {
+        let mut v = unsafe { CipherTextGT::uninit() };
+        unsafe {
+            sheEncGT(&mut v, self, m);
+        }
+        v
+    }
 }
 /*
 serialize_impl![
@@ -233,4 +222,12 @@ serialize_impl![
 
 pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
+}
+
+pub fn add(c1: &CipherTextG1, c2: &CipherTextG1) -> CipherTextG1 {
+    let mut v = unsafe { CipherTextG1::uninit() };
+    unsafe {
+        sheAddG1(&mut v, c1, c2);
+    }
+    v
 }

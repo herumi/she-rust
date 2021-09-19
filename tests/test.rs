@@ -14,5 +14,13 @@ fn test() {
 
     let mut sec = unsafe { SecretKey::uninit() };
     sec.set_by_csprng();
-    let _pubkey = sec.get_publickey();
+    let pubkey = sec.get_publickey();
+    let m11: i64 = 123;
+    let m21: i64 = 234;
+    let c11 = pubkey.enc_g1(m11);
+    let c21 = pubkey.enc_g1(m21);
+    let c31 = add(&c11, &c21);
+    assert_eq!(sec.dec(&c11).unwrap(), m11);
+    assert_eq!(sec.dec(&c21).unwrap(), m21);
+    assert_eq!(sec.dec(&c31).unwrap(), m11 + m21);
 }
