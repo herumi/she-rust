@@ -14,4 +14,5 @@ fn test() {
 
 	let mut sec = unsafe { SecretKey::uninit() };
 	sec.set_by_csprng();
+	let pubkey = sec.get_publickey();
 }

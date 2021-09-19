@@ -205,6 +205,10 @@ pub struct CipherTextGT {
 }
 
 common_impl![SecretKey];
+common_impl![PublicKey];
+common_impl![CipherTextG1];
+common_impl![CipherTextG2];
+common_impl![CipherTextGT];
 
 impl SecretKey {
 	pub fn set_by_csprng(&mut self) {
@@ -212,6 +216,13 @@ impl SecretKey {
 			panic!("sheSecretKeySetByCSPRNG")
 		}
 	}
+ pub fn get_publickey(&self) -> PublicKey {
+        let mut v = unsafe { PublicKey::uninit() };
+        unsafe {
+            sheGetPublicKey(&mut v, self);
+        }
+        v
+    }
 }
 /*
 serialize_impl![
