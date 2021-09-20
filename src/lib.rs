@@ -122,6 +122,18 @@ macro_rules! add_impl {
     };
 }
 
+macro_rules! mul_impl {
+    ($func_name:ident, $class:ident, $mul_fn:ident) => {
+        pub fn $func_name(c: &$class, x: i64) -> $class {
+            let mut v = unsafe { $class::uninit() };
+            unsafe {
+                $mul_fn(&mut v, c, x);
+            }
+            v
+        }
+    };
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct Fp {
@@ -230,6 +242,10 @@ enc_impl![enc_g2, CipherTextG2, sheEncG2];
 enc_impl![enc_gt, CipherTextGT, sheEncGT];
 
 impl PublicKey {}
+
+mul_impl![mul_g1, CipherTextG1, sheMulG1];
+mul_impl![mul_g2, CipherTextG2, sheMulG2];
+mul_impl![mul_gt, CipherTextGT, sheMulGT];
 
 /*
 serialize_impl![
