@@ -9,6 +9,8 @@ use std::os::raw::c_int;
 extern "C" {
     // global functions
     fn sheInit(curve: c_int, compiledTimeVar: c_int) -> c_int;
+    fn sheInitG1only(curve: c_int, compiledTimeVar: c_int) -> c_int;
+    fn sheSetTryNum(tryNum: usize);
     fn sheSecretKeySetByCSPRNG(sec: *mut SecretKey) -> c_int;
     fn sheGetPublicKey(pubkey: *mut PublicKey, sec: *const SecretKey);
     fn sheEncG1(c: *mut CipherTextG1, pubkey: *const PublicKey, m: i64) -> c_int;
@@ -27,6 +29,10 @@ extern "C" {
     fn sheMulG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: i64) -> c_int;
     fn sheMulGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: i64) -> c_int;
     fn sheMul(c: *mut CipherTextGT, x: *const CipherTextG1, y: *const CipherTextG2) -> c_int;
+    fn sheSetRangeForDLP(hashSize: usize) -> c_int;
+    fn sheSetRangeForG1DLP(hashSize: usize) -> c_int;
+    fn sheSetRangeForG2DLP(hashSize: usize) -> c_int;
+    fn sheSetRangeForGTDLP(hashSize: usize) -> c_int;
 }
 
 #[allow(non_camel_case_types)]
@@ -278,8 +284,44 @@ serialize_impl![
 ];
 */
 
+// for 2 level homomorphic encryption (curve = BN254 or BLS12_381)
 pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
+}
+
+// for only lifted-ElGamal encryption (curve = SECP256K1)
+pub fn init_g1_only(curve: CurveType) -> bool {
+    unsafe { sheInitG1only(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
+}
+
+/*
+    dec() can decrypt Enc(x) such that |x| <= hash_size * try_num
+    The table size of DLP is hash_size * 4 bytes
+    decryption time is alpha + beta * int(x/hash_size)
+    where alpha and beta are constant
+*/
+pub fn set_try_num(try_num: usize) {
+    unsafe { sheSetTryNum(try_num) }
+}
+
+// make hash_size entry table for all DLP
+pub fn set_range_for_dlp(hash_size: usize) -> bool {
+    unsafe { sheSetRangeForDLP(hash_size) == 0 }
+}
+
+// make hash_size entry table for G1 DLP
+pub fn set_range_for_g1_dlp(hash_size: usize) -> bool {
+    unsafe { sheSetRangeForG1DLP(hash_size) == 0 }
+}
+
+// make hash_size entry table for G2 DLP
+pub fn set_range_for_g2_dlp(hash_size: usize) -> bool {
+    unsafe { sheSetRangeForG2DLP(hash_size) == 0 }
+}
+
+// make hash_size entry table for GT DLP
+pub fn set_range_for_gt_dlp(hash_size: usize) -> bool {
+    unsafe { sheSetRangeForGTDLP(hash_size) == 0 }
 }
 
 add_impl![add_g1, CipherTextG1, sheAddG1];
