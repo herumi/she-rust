@@ -41,4 +41,15 @@ fn test() {
     assert_eq!(sec.dec_g2(&c2a).unwrap(), m21 + m22);
     assert_eq!(sec.dec_g2(&c2s).unwrap(), m21 - m22);
     assert_eq!(sec.dec_g2(&c2y).unwrap(), m21 * y);
+
+    let ct1 = pubkey.enc_gt(m21);
+    let ct2 = pubkey.enc_gt(m22);
+    let cta = add_gt(&ct1, &ct2);
+    let cts = sub_gt(&ct1, &ct2);
+    let cty = mul_gt(&ct1, y);
+    assert_eq!(sec.dec_gt(&ct1).unwrap(), m21);
+    assert_eq!(sec.dec_gt(&ct2).unwrap(), m22);
+    assert_eq!(sec.dec_gt(&cta).unwrap(), m21 + m22);
+    assert_eq!(sec.dec_gt(&cts).unwrap(), m21 - m22);
+    assert_eq!(sec.dec_gt(&cty).unwrap(), m21 * y);
 }
