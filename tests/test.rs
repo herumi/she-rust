@@ -24,33 +24,39 @@ fn test() {
     let c1a = add_g1(&c11, &c12);
     let c1s = sub_g1(&c11, &c12);
     let c1y = mul_g1(&c11, y);
+    let c1n = neg_g1(&c11);
     assert_eq!(sec.dec_g1(&c11).unwrap(), m11);
     assert_eq!(sec.dec_g1(&c12).unwrap(), m12);
     assert_eq!(sec.dec_g1(&c1a).unwrap(), m11 + m12);
     assert_eq!(sec.dec_g1(&c1s).unwrap(), m11 - m12);
     assert_eq!(sec.dec_g1(&c1y).unwrap(), m11 * y);
+    assert_eq!(sec.dec_g1(&c1n).unwrap(), -m11);
 
     let c21 = pubkey.enc_g2(m21);
     let c22 = pubkey.enc_g2(m22);
     let c2a = add_g2(&c21, &c22);
     let c2s = sub_g2(&c21, &c22);
     let c2y = mul_g2(&c21, y);
+    let c2n = neg_g2(&c21);
     assert_eq!(sec.dec_g2(&c21).unwrap(), m21);
     assert_eq!(sec.dec_g2(&c22).unwrap(), m22);
     assert_eq!(sec.dec_g2(&c2a).unwrap(), m21 + m22);
     assert_eq!(sec.dec_g2(&c2s).unwrap(), m21 - m22);
     assert_eq!(sec.dec_g2(&c2y).unwrap(), m21 * y);
+    assert_eq!(sec.dec_g2(&c2n).unwrap(), -m21);
 
     let ct1 = pubkey.enc_gt(m21);
     let ct2 = pubkey.enc_gt(m22);
     let cta = add_gt(&ct1, &ct2);
     let cts = sub_gt(&ct1, &ct2);
     let cty = mul_gt(&ct1, y);
+    let ctn = neg_gt(&ct1);
     assert_eq!(sec.dec_gt(&ct1).unwrap(), m21);
     assert_eq!(sec.dec_gt(&ct2).unwrap(), m22);
     assert_eq!(sec.dec_gt(&cta).unwrap(), m21 + m22);
     assert_eq!(sec.dec_gt(&cts).unwrap(), m21 - m22);
     assert_eq!(sec.dec_gt(&cty).unwrap(), m21 * y);
+    assert_eq!(sec.dec_gt(&ctn).unwrap(), -m21);
 
     let ctm = mul(&c11, &c21);
     assert_eq!(sec.dec_gt(&ctm).unwrap(), m11 * m21);

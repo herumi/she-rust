@@ -29,6 +29,9 @@ extern "C" {
     fn sheMulG2(c: *mut CipherTextG2, x: *const CipherTextG2, y: i64) -> c_int;
     fn sheMulGT(c: *mut CipherTextGT, x: *const CipherTextGT, y: i64) -> c_int;
     fn sheMul(c: *mut CipherTextGT, x: *const CipherTextG1, y: *const CipherTextG2) -> c_int;
+    fn sheNegG1(c: *mut CipherTextG1, x: *const CipherTextG1) -> c_int;
+    fn sheNegG2(c: *mut CipherTextG2, x: *const CipherTextG2) -> c_int;
+    fn sheNegGT(c: *mut CipherTextGT, x: *const CipherTextGT) -> c_int;
     fn sheSetRangeForDLP(hashSize: usize) -> c_int;
     fn sheSetRangeForG1DLP(hashSize: usize) -> c_int;
     fn sheSetRangeForG2DLP(hashSize: usize) -> c_int;
@@ -148,6 +151,18 @@ macro_rules! mul_impl {
             let mut v = unsafe { $class::uninit() };
             unsafe {
                 $mul_fn(&mut v, c, x);
+            }
+            v
+        }
+    };
+}
+
+macro_rules! neg_impl {
+    ($func_name:ident, $class:ident, $neg_fn:ident) => {
+        pub fn $func_name(c: &$class) -> $class {
+            let mut v = unsafe { $class::uninit() };
+            unsafe {
+                $neg_fn(&mut v, c);
             }
             v
         }
@@ -331,3 +346,7 @@ add_impl![add_gt, CipherTextGT, sheAddGT];
 sub_impl![sub_g1, CipherTextG1, sheSubG1];
 sub_impl![sub_g2, CipherTextG2, sheSubG2];
 sub_impl![sub_gt, CipherTextGT, sheSubGT];
+
+neg_impl![neg_g1, CipherTextG1, sheNegG1];
+neg_impl![neg_g2, CipherTextG2, sheNegG2];
+neg_impl![neg_gt, CipherTextGT, sheNegGT];
