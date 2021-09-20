@@ -1,3 +1,4 @@
+use std::mem;
 use std::os::raw::c_int;
 
 #[link(name = "mcl", kind = "static")]
@@ -39,6 +40,21 @@ extern "C" {
     fn sheIsZeroG1(sec: *const SecretKey, c: *const CipherTextG1) -> c_int;
     fn sheIsZeroG2(sec: *const SecretKey, c: *const CipherTextG2) -> c_int;
     fn sheIsZeroGT(sec: *const SecretKey, c: *const CipherTextGT) -> c_int;
+    fn sheSecretKeySerialize(buf: *mut u8, maxBufSize: usize, x: *const SecretKey) -> usize;
+    fn shePublicKeySerialize(buf: *mut u8, maxBufSize: usize, x: *const PublicKey) -> usize;
+    fn sheCipherTextG1Serialize(buf: *mut u8, maxBufSize: usize, x: *const CipherTextG1) -> usize;
+    fn sheCipherTextG2Serialize(buf: *mut u8, maxBufSize: usize, x: *const CipherTextG2) -> usize;
+    fn sheCipherTextGTSerialize(buf: *mut u8, maxBufSize: usize, x: *const CipherTextGT) -> usize;
+    fn sheSecretKeyDeserialize(x: *mut SecretKey, buf: *const u8, bufSize: usize) -> usize;
+    fn shePublicKeyDeserialize(x: *mut PublicKey, buf: *const u8, bufSize: usize) -> usize;
+    fn sheCipherTextG1Deserialize(x: *mut CipherTextG1, buf: *const u8, bufSize: usize) -> usize;
+    fn sheCipherTextG2Deserialize(x: *mut CipherTextG2, buf: *const u8, bufSize: usize) -> usize;
+    fn sheCipherTextGTDeserialize(x: *mut CipherTextGT, buf: *const u8, bufSize: usize) -> usize;
+    fn sheSecretKeyIsEqual(x: *const SecretKey, y: *const SecretKey) -> c_int;
+    fn shePublicKeyIsEqual(x: *const PublicKey, y: *const PublicKey) -> c_int;
+    fn sheCipherTextG1IsEqual(x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
+    fn sheCipherTextG2IsEqual(x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
+    fn sheCipherTextGTIsEqual(x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
 }
 
 #[allow(non_camel_case_types)]
@@ -59,6 +75,8 @@ pub enum CurveType {
 pub enum SheError {
     /// can't decrypt
     CantDecrypt,
+    /// invalid data
+    InvalidData,
     /// internal error
     InternalError,
 }
@@ -80,7 +98,14 @@ const GT_CIPHER_SIZE: usize = GT_SIZE * 4;
 const MCLBN_COMPILED_TIME_VAR: c_int = (MCLBN_FR_UNIT_SIZE * 10 + MCLBN_FP_UNIT_SIZE) as c_int;
 
 macro_rules! common_impl {
-    ($t:ty) => {
+    ($t:ty, $is_equal_fn:ident) => {
+        impl PartialEq for $t {
+            /// return true if `self` is equal to `rhs`
+            fn eq(&self, rhs: &Self) -> bool {
+                unsafe { $is_equal_fn(self, rhs) == 1 }
+            }
+        }
+        impl Eq for $t {}
         impl $t {
             pub fn zero() -> $t {
                 Default::default()
@@ -182,6 +207,47 @@ macro_rules! is_zero_impl {
     };
 }
 
+macro_rules! serialize_impl {
+    ($t:ty, $serialize_fn:ident, $deserialize_fn:ident) => {
+        impl $t {
+            /// return true if `buf` is deserialized successfully
+            /// * `buf` - serialized data by `serialize`
+            pub fn deserialize(&mut self, buf: &[u8]) -> bool {
+                let n = unsafe { $deserialize_fn(self, buf.as_ptr(), buf.len()) };
+                return n > 0 && n == buf.len();
+            }
+            /// return deserialized `buf`
+            pub fn from_serialized(buf: &[u8]) -> Result<$t, SheError> {
+                let mut v = unsafe { <$t>::uninit() };
+                if v.deserialize(buf) {
+                    return Ok(v);
+                }
+                Err(SheError::InvalidData)
+            }
+            /// return serialized byte array
+            pub fn serialize(&self) -> Vec<u8> {
+                let size = mem::size_of::<$t>() + 1;
+                let mut buf: Vec<u8> = Vec::with_capacity(size);
+                let n: usize;
+                unsafe {
+                    n = $serialize_fn(buf.as_mut_ptr(), size, self);
+                }
+                if n == 0 {
+                    panic!("she serialization error");
+                }
+                unsafe {
+                    buf.set_len(n);
+                }
+                buf
+            }
+            /// alias of serialize
+            pub fn as_bytes(&self) -> Vec<u8> {
+                self.serialize()
+            }
+        }
+    };
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct Fp {
@@ -260,11 +326,11 @@ pub struct CipherTextGT {
     pub g: [GT; 4],
 }
 
-common_impl![SecretKey];
-common_impl![PublicKey];
-common_impl![CipherTextG1];
-common_impl![CipherTextG2];
-common_impl![CipherTextGT];
+common_impl![SecretKey, sheSecretKeyIsEqual];
+common_impl![PublicKey, shePublicKeyIsEqual];
+common_impl![CipherTextG1, sheCipherTextG1IsEqual];
+common_impl![CipherTextG2, sheCipherTextG2IsEqual];
+common_impl![CipherTextGT, sheCipherTextGTIsEqual];
 
 dec_impl![dec_g1, CipherTextG1, sheDecG1];
 dec_impl![dec_g2, CipherTextG2, sheDecG2];
@@ -367,3 +433,21 @@ sub_impl![sub_gt, CipherTextGT, sheSubGT];
 neg_impl![neg_g1, CipherTextG1, sheNegG1];
 neg_impl![neg_g2, CipherTextG2, sheNegG2];
 neg_impl![neg_gt, CipherTextGT, sheNegGT];
+
+serialize_impl![SecretKey, sheSecretKeySerialize, sheSecretKeyDeserialize];
+serialize_impl![PublicKey, shePublicKeySerialize, shePublicKeyDeserialize];
+serialize_impl![
+    CipherTextG1,
+    sheCipherTextG1Serialize,
+    sheCipherTextG1Deserialize
+];
+serialize_impl![
+    CipherTextG2,
+    sheCipherTextG2Serialize,
+    sheCipherTextG2Deserialize
+];
+serialize_impl![
+    CipherTextGT,
+    sheCipherTextGTSerialize,
+    sheCipherTextGTDeserialize
+];

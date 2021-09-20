@@ -1,6 +1,18 @@
 use she_rust::*;
 use std::mem;
 
+macro_rules! serialize_test {
+    ($t:ty, $x:expr) => {
+        let buf = $x.serialize();
+        let mut y: $t = unsafe { <$t>::uninit() };
+        assert!(y.deserialize(&buf));
+        assert_eq!($x, y);
+
+        let z = <$t>::from_serialized(&buf);
+        assert_eq!($x, z.unwrap());
+    };
+}
+
 #[test]
 fn test() {
     assert_eq!(mem::size_of::<Fr>(), 32);
@@ -66,4 +78,10 @@ fn test() {
 
     let ctm = mul(&c11, &c21);
     assert_eq!(sec.dec_gt(&ctm).unwrap(), m11 * m21);
+
+    serialize_test![SecretKey, sec];
+    serialize_test![PublicKey, pubkey];
+    serialize_test![CipherTextG1, c11];
+    serialize_test![CipherTextG2, c21];
+    serialize_test![CipherTextGT, ct1];
 }
