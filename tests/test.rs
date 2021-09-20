@@ -28,4 +28,8 @@ fn test() {
 
     let c21 = pubkey.enc_g2(m21);
     let c22 = pubkey.enc_g2(m22);
+    let c2a = add_g2(&c21, &c22);
+    assert_eq!(sec.dec_g2(&c21).unwrap(), m21);
+    assert_eq!(sec.dec_g2(&c22).unwrap(), m22);
+    assert_eq!(sec.dec_g2(&c2a).unwrap(), m21 + m22);
 }

@@ -81,6 +81,47 @@ macro_rules! common_impl {
     };
 }
 
+macro_rules! dec_impl {
+    ($func_name:ident, $class:ident, $dec_fn:ident) => {
+        impl SecretKey {
+            pub fn $func_name(&self, c: *const $class) -> Result<i64, SheError> {
+                let mut v: i64 = 0;
+                if unsafe { $dec_fn(&mut v, self, c) } == 0 {
+                    return Ok(v);
+                } else {
+                    Err(SheError::CantDecrypt)
+                }
+            }
+        }
+    };
+}
+
+macro_rules! enc_impl {
+    ($func_name:ident, $class:ident, $enc_fn:ident) => {
+        impl PublicKey {
+            pub fn $func_name(&self, m: i64) -> $class {
+                let mut v = unsafe { $class::uninit() };
+                unsafe {
+                    $enc_fn(&mut v, self, m);
+                }
+                v
+            }
+        }
+    };
+}
+
+macro_rules! add_impl {
+    ($func_name:ident, $class:ident, $add_fn:ident) => {
+        pub fn $func_name(c1: &$class, c2: &$class) -> $class {
+            let mut v = unsafe { $class::uninit() };
+            unsafe {
+                $add_fn(&mut v, c1, c2);
+            }
+            v
+        }
+    };
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct Fp {
@@ -165,21 +206,6 @@ common_impl![CipherTextG1];
 common_impl![CipherTextG2];
 common_impl![CipherTextGT];
 
-macro_rules! dec_impl {
-    ($func_name:ident, $class:ident, $dec_fn:ident) => {
-        impl SecretKey {
-            pub fn $func_name(&self, c: *const $class) -> Result<i64, SheError> {
-                let mut v: i64 = 0;
-                if unsafe { $dec_fn(&mut v, self, c) } == 0 {
-                    return Ok(v);
-                } else {
-                    Err(SheError::CantDecrypt)
-                }
-            }
-        }
-    };
-}
-
 dec_impl![dec_g1, CipherTextG1, sheDecG1];
 dec_impl![dec_g2, CipherTextG2, sheDecG2];
 dec_impl![dec_gt, CipherTextGT, sheDecGT];
@@ -199,29 +225,12 @@ impl SecretKey {
     }
 }
 
-impl PublicKey {
-    pub fn enc_g1(&self, m: i64) -> CipherTextG1 {
-        let mut v = unsafe { CipherTextG1::uninit() };
-        unsafe {
-            sheEncG1(&mut v, self, m);
-        }
-        v
-    }
-    pub fn enc_g2(&self, m: i64) -> CipherTextG2 {
-        let mut v = unsafe { CipherTextG2::uninit() };
-        unsafe {
-            sheEncG2(&mut v, self, m);
-        }
-        v
-    }
-    pub fn enc_gt(&self, m: i64) -> CipherTextGT {
-        let mut v = unsafe { CipherTextGT::uninit() };
-        unsafe {
-            sheEncGT(&mut v, self, m);
-        }
-        v
-    }
-}
+enc_impl![enc_g1, CipherTextG1, sheEncG1];
+enc_impl![enc_g2, CipherTextG2, sheEncG2];
+enc_impl![enc_gt, CipherTextGT, sheEncGT];
+
+impl PublicKey {}
+
 /*
 serialize_impl![
     Fp,
@@ -235,10 +244,6 @@ pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
 }
 
-pub fn add_g1(c1: &CipherTextG1, c2: &CipherTextG1) -> CipherTextG1 {
-    let mut v = unsafe { CipherTextG1::uninit() };
-    unsafe {
-        sheAddG1(&mut v, c1, c2);
-    }
-    v
-}
+add_impl![add_g1, CipherTextG1, sheAddG1];
+add_impl![add_g2, CipherTextG2, sheAddG2];
+add_impl![add_gt, CipherTextGT, sheAddGT];
