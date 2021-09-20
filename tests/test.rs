@@ -52,4 +52,7 @@ fn test() {
     assert_eq!(sec.dec_gt(&cta).unwrap(), m21 + m22);
     assert_eq!(sec.dec_gt(&cts).unwrap(), m21 - m22);
     assert_eq!(sec.dec_gt(&cty).unwrap(), m21 * y);
+
+    let ctm = mul(&c11, &c21);
+    assert_eq!(sec.dec_gt(&ctm).unwrap(), m11 * m21);
 }

@@ -259,6 +259,14 @@ mul_impl![mul_g1, CipherTextG1, sheMulG1];
 mul_impl![mul_g2, CipherTextG2, sheMulG2];
 mul_impl![mul_gt, CipherTextGT, sheMulGT];
 
+pub fn mul(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
+    let mut v = unsafe { CipherTextGT::uninit() };
+    unsafe {
+        sheMul(&mut v, c1, c2);
+    }
+    v
+}
+
 /*
 serialize_impl![
     Fp,
