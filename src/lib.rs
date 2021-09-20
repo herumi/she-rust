@@ -122,6 +122,18 @@ macro_rules! add_impl {
     };
 }
 
+macro_rules! sub_impl {
+    ($func_name:ident, $class:ident, $sub_fn:ident) => {
+        pub fn $func_name(c1: &$class, c2: &$class) -> $class {
+            let mut v = unsafe { $class::uninit() };
+            unsafe {
+                $sub_fn(&mut v, c1, c2);
+            }
+            v
+        }
+    };
+}
+
 macro_rules! mul_impl {
     ($func_name:ident, $class:ident, $mul_fn:ident) => {
         pub fn $func_name(c: &$class, x: i64) -> $class {
@@ -263,3 +275,7 @@ pub fn init(curve: CurveType) -> bool {
 add_impl![add_g1, CipherTextG1, sheAddG1];
 add_impl![add_g2, CipherTextG2, sheAddG2];
 add_impl![add_gt, CipherTextGT, sheAddGT];
+
+sub_impl![sub_g1, CipherTextG1, sheSubG1];
+sub_impl![sub_g2, CipherTextG2, sheSubG2];
+sub_impl![sub_gt, CipherTextGT, sheSubGT];
