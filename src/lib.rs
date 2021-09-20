@@ -53,6 +53,7 @@ pub enum SheError {
 
 const MCLBN_FP_UNIT_SIZE: usize = 6;
 const MCLBN_FR_UNIT_SIZE: usize = 4;
+/*
 const FR_SIZE: usize = MCLBN_FR_UNIT_SIZE;
 const G1_SIZE: usize = MCLBN_FP_UNIT_SIZE * 3;
 const G2_SIZE: usize = MCLBN_FP_UNIT_SIZE * 6;
@@ -63,6 +64,7 @@ const PUB_SIZE: usize = G1_SIZE + G2_SIZE;
 const G1_CIPHER_SIZE: usize = G1_SIZE * 2;
 const G2_CIPHER_SIZE: usize = G2_SIZE * 2;
 const GT_CIPHER_SIZE: usize = GT_SIZE * 4;
+*/
 const MCLBN_COMPILED_TIME_VAR: c_int = (MCLBN_FR_UNIT_SIZE * 10 + MCLBN_FP_UNIT_SIZE) as c_int;
 
 macro_rules! common_impl {

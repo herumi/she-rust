@@ -2,7 +2,6 @@ use she_rust::*;
 use std::mem;
 
 #[test]
-#[allow(non_snake_case)]
 fn test() {
     assert_eq!(mem::size_of::<Fr>(), 32);
     assert_eq!(mem::size_of::<Fp>(), 48);
