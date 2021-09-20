@@ -36,6 +36,9 @@ extern "C" {
     fn sheSetRangeForG1DLP(hashSize: usize) -> c_int;
     fn sheSetRangeForG2DLP(hashSize: usize) -> c_int;
     fn sheSetRangeForGTDLP(hashSize: usize) -> c_int;
+    fn sheIsZeroG1(sec: *const SecretKey, c: *const CipherTextG1) -> c_int;
+    fn sheIsZeroG2(sec: *const SecretKey, c: *const CipherTextG2) -> c_int;
+    fn sheIsZeroGT(sec: *const SecretKey, c: *const CipherTextGT) -> c_int;
 }
 
 #[allow(non_camel_case_types)]
@@ -169,6 +172,16 @@ macro_rules! neg_impl {
     };
 }
 
+macro_rules! is_zero_impl {
+    ($func_name:ident, $class:ident, $is_zero_fn:ident) => {
+        impl SecretKey {
+            pub fn $func_name(&self, c: *const $class) -> bool {
+                unsafe { $is_zero_fn(self, c) == 1 }
+            }
+        }
+    };
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct Fp {
@@ -256,6 +269,10 @@ common_impl![CipherTextGT];
 dec_impl![dec_g1, CipherTextG1, sheDecG1];
 dec_impl![dec_g2, CipherTextG2, sheDecG2];
 dec_impl![dec_gt, CipherTextGT, sheDecGT];
+
+is_zero_impl![is_zero_g1, CipherTextG1, sheIsZeroG1];
+is_zero_impl![is_zero_g2, CipherTextG2, sheIsZeroG2];
+is_zero_impl![is_zero_gt, CipherTextGT, sheIsZeroGT];
 
 impl SecretKey {
     pub fn set_by_csprng(&mut self) {

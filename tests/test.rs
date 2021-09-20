@@ -31,6 +31,8 @@ fn test() {
     assert_eq!(sec.dec_g1(&c1s).unwrap(), m11 - m12);
     assert_eq!(sec.dec_g1(&c1y).unwrap(), m11 * y);
     assert_eq!(sec.dec_g1(&c1n).unwrap(), -m11);
+    assert!(sec.is_zero_g1(&pubkey.enc_g1(0)));
+    assert!(!sec.is_zero_g1(&pubkey.enc_g1(123)));
 
     let c21 = pubkey.enc_g2(m21);
     let c22 = pubkey.enc_g2(m22);
@@ -44,6 +46,8 @@ fn test() {
     assert_eq!(sec.dec_g2(&c2s).unwrap(), m21 - m22);
     assert_eq!(sec.dec_g2(&c2y).unwrap(), m21 * y);
     assert_eq!(sec.dec_g2(&c2n).unwrap(), -m21);
+    assert!(sec.is_zero_g2(&pubkey.enc_g2(0)));
+    assert!(!sec.is_zero_g2(&pubkey.enc_g2(123)));
 
     let ct1 = pubkey.enc_gt(m21);
     let ct2 = pubkey.enc_gt(m22);
@@ -57,6 +61,8 @@ fn test() {
     assert_eq!(sec.dec_gt(&cts).unwrap(), m21 - m22);
     assert_eq!(sec.dec_gt(&cty).unwrap(), m21 * y);
     assert_eq!(sec.dec_gt(&ctn).unwrap(), -m21);
+    assert!(sec.is_zero_gt(&pubkey.enc_gt(0)));
+    assert!(!sec.is_zero_gt(&pubkey.enc_gt(123)));
 
     let ctm = mul(&c11, &c21);
     assert_eq!(sec.dec_gt(&ctm).unwrap(), m11 * m21);
