@@ -165,6 +165,25 @@ common_impl![CipherTextG1];
 common_impl![CipherTextG2];
 common_impl![CipherTextGT];
 
+macro_rules! dec_impl {
+    ($func_name:ident, $class:ident, $dec_fn:ident) => {
+        impl SecretKey {
+            pub fn $func_name(&self, c: *const $class) -> Result<i64, SheError> {
+                let mut v: i64 = 0;
+                if unsafe { $dec_fn(&mut v, self, c) } == 0 {
+                    return Ok(v);
+                } else {
+                    Err(SheError::CantDecrypt)
+                }
+            }
+        }
+    };
+}
+
+dec_impl![dec_g1, CipherTextG1, sheDecG1];
+dec_impl![dec_g2, CipherTextG2, sheDecG2];
+dec_impl![dec_gt, CipherTextGT, sheDecGT];
+
 impl SecretKey {
     pub fn set_by_csprng(&mut self) {
         if !unsafe { sheSecretKeySetByCSPRNG(self) == 0 } {
@@ -177,14 +196,6 @@ impl SecretKey {
             sheGetPublicKey(&mut v, self);
         }
         v
-    }
-    pub fn dec(&self, c: *const CipherTextG1) -> Result<i64, SheError> {
-        let mut v: i64 = 0;
-        if unsafe { sheDecG1(&mut v, self, c) } == 0 {
-            return Ok(v);
-        } else {
-            Err(SheError::CantDecrypt)
-        }
     }
 }
 
@@ -224,7 +235,7 @@ pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
 }
 
-pub fn add(c1: &CipherTextG1, c2: &CipherTextG1) -> CipherTextG1 {
+pub fn add_g1(c1: &CipherTextG1, c2: &CipherTextG1) -> CipherTextG1 {
     let mut v = unsafe { CipherTextG1::uninit() };
     unsafe {
         sheAddG1(&mut v, c1, c2);
