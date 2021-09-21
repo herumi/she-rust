@@ -1,7 +1,6 @@
 // env RUSTFLAGS="-L <mcl>/lib" cargo run
 use she_rust::*;
 
-#[allow(non_snake_case)]
 fn main() {
     if !init(CurveType::BN254) {
         println!("init err");
