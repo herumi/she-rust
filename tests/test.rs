@@ -93,4 +93,18 @@ fn test() {
     assert_eq!(sec.dec_g1(&cp1).unwrap(), m11);
     assert_eq!(sec.dec_g2(&cp2).unwrap(), m11);
     assert_eq!(sec.dec_gt(&cpt).unwrap(), m11);
+
+    // for large value
+    let lv = 12345;
+    let c = ppub.enc_g1(lv);
+    set_try_num(1);
+    match sec.dec_g1(&c) {
+        Ok(_) => assert!(false),
+        Err(err) => assert_eq!(SheError::CantDecrypt, err),
+    }
+    set_range_for_dlp(20000);
+    match sec.dec_g1(&c) {
+        Ok(v) => assert_eq!(lv, v),
+        Err(_) => assert!(false),
+    }
 }
