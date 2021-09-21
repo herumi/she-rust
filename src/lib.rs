@@ -125,107 +125,6 @@ macro_rules! common_impl {
     };
 }
 
-macro_rules! dec_impl {
-    ($func_name:ident, $class:ident, $dec_fn:ident) => {
-        impl SecretKey {
-            pub fn $func_name(&self, c: *const $class) -> Result<i64, SheError> {
-                let mut v: i64 = 0;
-                if unsafe { $dec_fn(&mut v, self, c) } == 0 {
-                    return Ok(v);
-                } else {
-                    Err(SheError::CantDecrypt)
-                }
-            }
-        }
-    };
-}
-
-macro_rules! enc_impl {
-    ($func_name:ident, $class:ident, $enc_fn:ident) => {
-        impl PublicKey {
-            pub fn $func_name(&self, m: i64) -> $class {
-                let mut v = unsafe { $class::uninit() };
-                unsafe {
-                    $enc_fn(&mut v, self, m);
-                }
-                v
-            }
-        }
-    };
-}
-
-macro_rules! penc_impl {
-    ($func_name:ident, $class:ident, $enc_fn:ident) => {
-        impl PrecomputedPublicKey {
-            pub fn $func_name(&self, m: i64) -> $class {
-                let mut v = unsafe { $class::uninit() };
-                unsafe {
-                    $enc_fn(&mut v, self.p, m);
-                }
-                v
-            }
-        }
-    };
-}
-
-macro_rules! add_impl {
-    ($func_name:ident, $class:ident, $add_fn:ident) => {
-        pub fn $func_name(c1: &$class, c2: &$class) -> $class {
-            let mut v = unsafe { $class::uninit() };
-            unsafe {
-                $add_fn(&mut v, c1, c2);
-            }
-            v
-        }
-    };
-}
-
-macro_rules! sub_impl {
-    ($func_name:ident, $class:ident, $sub_fn:ident) => {
-        pub fn $func_name(c1: &$class, c2: &$class) -> $class {
-            let mut v = unsafe { $class::uninit() };
-            unsafe {
-                $sub_fn(&mut v, c1, c2);
-            }
-            v
-        }
-    };
-}
-
-macro_rules! mul_impl {
-    ($func_name:ident, $class:ident, $mul_fn:ident) => {
-        pub fn $func_name(c: &$class, x: i64) -> $class {
-            let mut v = unsafe { $class::uninit() };
-            unsafe {
-                $mul_fn(&mut v, c, x);
-            }
-            v
-        }
-    };
-}
-
-macro_rules! neg_impl {
-    ($func_name:ident, $class:ident, $neg_fn:ident) => {
-        pub fn $func_name(c: &$class) -> $class {
-            let mut v = unsafe { $class::uninit() };
-            unsafe {
-                $neg_fn(&mut v, c);
-            }
-            v
-        }
-    };
-}
-
-macro_rules! is_zero_impl {
-    ($func_name:ident, $class:ident, $is_zero_fn:ident) => {
-        impl SecretKey {
-            pub fn $func_name(&self, c: *const $class) -> bool {
-                unsafe { $is_zero_fn(self, c) == 1 }
-            }
-        }
-    };
-}
-
 macro_rules! serialize_impl {
     ($t:ty, $serialize_fn:ident, $deserialize_fn:ident) => {
         impl $t {
@@ -323,12 +222,60 @@ pub struct PublicKey {
     yQ: G2,
 }
 
+impl PublicKey {
+    pub fn encrypt<C: CipherText>(&self, m: i64) -> C {
+        let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+        unsafe {
+            C::enc(&mut v, self, m);
+        }
+        v
+    }
+}
+
+pub trait CipherText: Sized {
+    unsafe fn enc(c: *mut Self, pubkey: *const PublicKey, m: i64) -> c_int;
+    unsafe fn penc(c: *mut Self, ppub: *const c_void, m: i64) -> c_int;
+    unsafe fn dec(m: *mut i64, sec: *const SecretKey, c: *const Self) -> c_int;
+    unsafe fn add(c: *mut Self, x: *const Self, y: *const Self) -> c_int;
+    unsafe fn sub(c: *mut Self, x: *const Self, y: *const Self) -> c_int;
+    unsafe fn mul(c: *mut Self, x: *const Self, y: i64) -> c_int;
+    unsafe fn neg(c: *mut Self, x: *const Self) -> c_int;
+    unsafe fn is_zero(sec: *const SecretKey, c: *const Self) -> c_int;
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct CipherTextG1 {
     S: G1,
     T: G1,
+}
+
+impl CipherText for CipherTextG1 {
+    unsafe fn enc(c: *mut Self, pubkey: *const PublicKey, m: i64) -> c_int {
+        sheEncG1(c, pubkey, m)
+    }
+    unsafe fn penc(c: *mut Self, ppub: *const c_void, m: i64) -> c_int {
+        shePrecomputedPublicKeyEncG1(c, ppub, m)
+    }
+    unsafe fn dec(m: *mut i64, sec: *const SecretKey, c: *const Self) -> c_int {
+        sheDecG1(m, sec, c)
+    }
+    unsafe fn add(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheAddG1(c, x, y)
+    }
+    unsafe fn sub(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheSubG1(c, x, y)
+    }
+    unsafe fn mul(c: *mut Self, x: *const Self, y: i64) -> c_int {
+        sheMulG1(c, x, y)
+    }
+    unsafe fn neg(c: *mut Self, x: *const Self) -> c_int {
+        sheNegG1(c, x)
+    }
+    unsafe fn is_zero(sec: *const SecretKey, c: *const Self) -> c_int {
+        sheIsZeroG1(sec, c)
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -339,10 +286,64 @@ pub struct CipherTextG2 {
     T: G2,
 }
 
+impl CipherText for CipherTextG2 {
+    unsafe fn enc(c: *mut Self, pubkey: *const PublicKey, m: i64) -> c_int {
+        sheEncG2(c, pubkey, m)
+    }
+    unsafe fn penc(c: *mut Self, ppub: *const c_void, m: i64) -> c_int {
+        shePrecomputedPublicKeyEncG2(c, ppub, m)
+    }
+    unsafe fn dec(m: *mut i64, sec: *const SecretKey, c: *const Self) -> c_int {
+        sheDecG2(m, sec, c)
+    }
+    unsafe fn add(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheAddG2(c, x, y)
+    }
+    unsafe fn sub(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheSubG2(c, x, y)
+    }
+    unsafe fn mul(c: *mut Self, x: *const Self, y: i64) -> c_int {
+        sheMulG2(c, x, y)
+    }
+    unsafe fn neg(c: *mut Self, x: *const Self) -> c_int {
+        sheNegG2(c, x)
+    }
+    unsafe fn is_zero(sec: *const SecretKey, c: *const Self) -> c_int {
+        sheIsZeroG2(sec, c)
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct CipherTextGT {
     g: [GT; 4],
+}
+
+impl CipherText for CipherTextGT {
+    unsafe fn enc(c: *mut Self, pubkey: *const PublicKey, m: i64) -> c_int {
+        sheEncGT(c, pubkey, m)
+    }
+    unsafe fn penc(c: *mut Self, ppub: *const c_void, m: i64) -> c_int {
+        shePrecomputedPublicKeyEncGT(c, ppub, m)
+    }
+    unsafe fn dec(m: *mut i64, sec: *const SecretKey, c: *const Self) -> c_int {
+        sheDecGT(m, sec, c)
+    }
+    unsafe fn add(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheAddGT(c, x, y)
+    }
+    unsafe fn sub(c: *mut Self, x: *const Self, y: *const Self) -> c_int {
+        sheSubGT(c, x, y)
+    }
+    unsafe fn mul(c: *mut Self, x: *const Self, y: i64) -> c_int {
+        sheMulGT(c, x, y)
+    }
+    unsafe fn neg(c: *mut Self, x: *const Self) -> c_int {
+        sheNegGT(c, x)
+    }
+    unsafe fn is_zero(sec: *const SecretKey, c: *const Self) -> c_int {
+        sheIsZeroGT(sec, c)
+    }
 }
 
 #[derive(Debug)] // Don't Clone
@@ -362,6 +363,13 @@ impl PrecomputedPublicKey {
             shePrecomputedPublicKeyInit(self.p, pubkey);
         }
     }
+    pub fn encrypt<C: CipherText>(&self, m: i64) -> C {
+        let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+        unsafe {
+            C::penc(&mut v, self.p, m);
+        }
+        v
+    }
 }
 
 impl Drop for PrecomputedPublicKey {
@@ -376,14 +384,6 @@ common_impl![CipherTextG1, sheCipherTextG1IsEqual];
 common_impl![CipherTextG2, sheCipherTextG2IsEqual];
 common_impl![CipherTextGT, sheCipherTextGTIsEqual];
 
-dec_impl![dec_g1, CipherTextG1, sheDecG1];
-dec_impl![dec_g2, CipherTextG2, sheDecG2];
-dec_impl![dec_gt, CipherTextGT, sheDecGT];
-
-is_zero_impl![is_zero_g1, CipherTextG1, sheIsZeroG1];
-is_zero_impl![is_zero_g2, CipherTextG2, sheIsZeroG2];
-is_zero_impl![is_zero_gt, CipherTextGT, sheIsZeroGT];
-
 impl SecretKey {
     pub fn set_by_csprng(&mut self) {
         if !unsafe { sheSecretKeySetByCSPRNG(self) == 0 } {
@@ -397,23 +397,30 @@ impl SecretKey {
         }
         v
     }
+    pub fn decrpyt<C: CipherText>(&self, c: *const C) -> Result<i64, SheError> {
+        let mut v: i64 = 0;
+        if unsafe { C::dec(&mut v, self, c) } == 0 {
+            return Ok(v);
+        } else {
+            Err(SheError::CantDecrypt)
+        }
+    }
+    pub fn is_zero<C: CipherText>(&self, c: *const C) -> bool {
+        unsafe { C::is_zero(self, c) == 1 }
+    }
 }
-
-enc_impl![enc_g1, CipherTextG1, sheEncG1];
-enc_impl![enc_g2, CipherTextG2, sheEncG2];
-enc_impl![enc_gt, CipherTextGT, sheEncGT];
-
-penc_impl![enc_g1, CipherTextG1, shePrecomputedPublicKeyEncG1];
-penc_impl![enc_g2, CipherTextG2, shePrecomputedPublicKeyEncG2];
-penc_impl![enc_gt, CipherTextGT, shePrecomputedPublicKeyEncGT];
 
 impl PublicKey {}
 
-mul_impl![mul_g1, CipherTextG1, sheMulG1];
-mul_impl![mul_g2, CipherTextG2, sheMulG2];
-mul_impl![mul_gt, CipherTextGT, sheMulGT];
+pub fn mul<C: CipherText>(c: C, x: i64) -> C {
+    let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    unsafe {
+        C::mul(&mut v, c, x);
+    }
+    v
+}
 
-pub fn mul(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
+pub fn mul_g1_g2(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
     let mut v = unsafe { CipherTextGT::uninit() };
     unsafe {
         sheMul(&mut v, c1, c2);
@@ -470,17 +477,29 @@ pub fn set_range_for_gt_dlp(hash_size: usize) -> bool {
     unsafe { sheSetRangeForGTDLP(hash_size) == 0 }
 }
 
-add_impl![add_g1, CipherTextG1, sheAddG1];
-add_impl![add_g2, CipherTextG2, sheAddG2];
-add_impl![add_gt, CipherTextGT, sheAddGT];
+pub fn add<C: CipherText>(c1: C, c2: C) -> C {
+    let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    unsafe {
+        C::add(&mut v, c1, c2);
+    }
+    v
+}
 
-sub_impl![sub_g1, CipherTextG1, sheSubG1];
-sub_impl![sub_g2, CipherTextG2, sheSubG2];
-sub_impl![sub_gt, CipherTextGT, sheSubGT];
+pub fn sub<C: CipherText>(c1: C, c2: C) -> C {
+    let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    unsafe {
+        C::sub(&mut v, c1, c2);
+    }
+    v
+}
 
-neg_impl![neg_g1, CipherTextG1, sheNegG1];
-neg_impl![neg_g2, CipherTextG2, sheNegG2];
-neg_impl![neg_gt, CipherTextGT, sheNegGT];
+pub fn neg<C: CipherText>(c: C) -> C {
+    let mut v = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    unsafe {
+        C::neg(&mut v, c);
+    }
+    v
+}
 
 serialize_impl![SecretKey, sheSecretKeySerialize, sheSecretKeyDeserialize];
 serialize_impl![PublicKey, shePublicKeySerialize, shePublicKeyDeserialize];
