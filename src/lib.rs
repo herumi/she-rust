@@ -287,6 +287,35 @@ pub trait CipherText: Serializable {
     unsafe fn mul(c: *mut Self, x: *const Self, y: i64) -> c_int;
     unsafe fn neg(c: *mut Self, x: *const Self) -> c_int;
     unsafe fn is_zero(sec: *const SecretKey, c: *const Self) -> c_int;
+
+    fn add(&self, rhs: &Self) -> Self {
+        let mut v = unsafe { Self::uninit() };
+        unsafe {
+            Self::add(&mut v, self, rhs);
+        }
+        v
+    }
+    fn sub(&self, rhs: &Self) -> Self {
+        let mut v = unsafe { Self::uninit() };
+        unsafe {
+            Self::sub(&mut v, self, rhs);
+        }
+        v
+    }
+    fn mul(&self, x: i64) -> Self {
+        let mut v = unsafe { Self::uninit() };
+        unsafe {
+            Self::mul(&mut v, self, x);
+        }
+        v
+    }
+    fn neg(&self) -> Self {
+        let mut v = unsafe { Self::uninit() };
+        unsafe {
+            Self::neg(&mut v, self);
+        }
+        v
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -450,17 +479,7 @@ impl SecretKey {
     }
 }
 
-impl PublicKey {}
-
-pub fn mul<C: CipherText>(c: C, x: i64) -> C {
-    let mut v = unsafe { C::uninit() };
-    unsafe {
-        C::mul(&mut v, c, x);
-    }
-    v
-}
-
-pub fn mul_g1_g2(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
+pub fn mul(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
     let mut v = unsafe { CipherTextGT::uninit() };
     unsafe {
         sheMul(&mut v, c1, c2);
@@ -515,28 +534,4 @@ pub fn set_range_for_g2_dlp(hash_size: usize) -> bool {
 // make hash_size entry table for GT DLP
 pub fn set_range_for_gt_dlp(hash_size: usize) -> bool {
     unsafe { sheSetRangeForGTDLP(hash_size) == 0 }
-}
-
-pub fn add<C: CipherText>(c1: C, c2: C) -> C {
-    let mut v = unsafe { C::uninit() };
-    unsafe {
-        C::add(&mut v, c1, c2);
-    }
-    v
-}
-
-pub fn sub<C: CipherText>(c1: C, c2: C) -> C {
-    let mut v = unsafe { C::uninit() };
-    unsafe {
-        C::sub(&mut v, c1, c2);
-    }
-    v
-}
-
-pub fn neg<C: CipherText>(c: C) -> C {
-    let mut v = unsafe { C::uninit() };
-    unsafe {
-        C::neg(&mut v, c);
-    }
-    v
 }
