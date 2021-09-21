@@ -271,25 +271,25 @@ macro_rules! serialize_impl {
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct Fp {
+struct Fp {
     d: [u64; MCLBN_FP_UNIT_SIZE],
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct Fr {
+struct Fr {
     d: [u64; MCLBN_FR_UNIT_SIZE],
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct Fp2 {
+struct Fp2 {
     d: [Fp; 2],
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct G1 {
+struct G1 {
     pub x: Fp,
     pub y: Fp,
     pub z: Fp,
@@ -297,7 +297,7 @@ pub struct G1 {
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct G2 {
+struct G2 {
     pub x: Fp2,
     pub y: Fp2,
     pub z: Fp2,
@@ -305,15 +305,15 @@ pub struct G2 {
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
-pub struct GT {
+struct GT {
     d: [Fp; 12],
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct SecretKey {
-    pub x: Fr,
-    pub y: Fr,
+    x: Fr,
+    y: Fr,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -321,30 +321,30 @@ pub struct SecretKey {
 #[allow(non_snake_case)]
 #[allow(non_camel_case_types)]
 pub struct PublicKey {
-    pub xP: G1,
-    pub yQ: G2,
+    xP: G1,
+    yQ: G2,
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct CipherTextG1 {
-    pub S: G1,
-    pub T: G1,
+    S: G1,
+    T: G1,
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct CipherTextG2 {
-    pub S: G2,
-    pub T: G2,
+    S: G2,
+    T: G2,
 }
 
 #[derive(Default, Debug, Clone)]
 #[repr(C)]
 pub struct CipherTextGT {
-    pub g: [GT; 4],
+    g: [GT; 4],
 }
 
 #[derive(Debug)] // Don't Clone
