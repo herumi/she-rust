@@ -84,4 +84,13 @@ fn test() {
     serialize_test![CipherTextG1, c11];
     serialize_test![CipherTextG2, c21];
     serialize_test![CipherTextGT, ct1];
+
+    let mut ppub = PrecomputedPublicKey::new();
+    ppub.init(&pubkey);
+    let cp1 = ppub.enc_g1(m11);
+    let cp2 = ppub.enc_g2(m11);
+    let cpt = ppub.enc_gt(m11);
+    assert_eq!(sec.dec_g1(&cp1).unwrap(), m11);
+    assert_eq!(sec.dec_g2(&cp2).unwrap(), m11);
+    assert_eq!(sec.dec_gt(&cpt).unwrap(), m11);
 }

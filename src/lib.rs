@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::mem;
 use std::os::raw::c_int;
 
@@ -55,6 +56,12 @@ extern "C" {
     fn sheCipherTextG1IsEqual(x: *const CipherTextG1, y: *const CipherTextG1) -> c_int;
     fn sheCipherTextG2IsEqual(x: *const CipherTextG2, y: *const CipherTextG2) -> c_int;
     fn sheCipherTextGTIsEqual(x: *const CipherTextGT, y: *const CipherTextGT) -> c_int;
+    fn shePrecomputedPublicKeyCreate() -> *mut c_void;
+    fn shePrecomputedPublicKeyDestroy(ppub: *mut c_void);
+    fn shePrecomputedPublicKeyInit(ppub: *mut c_void, pubkey: *const PublicKey) -> c_int;
+    fn shePrecomputedPublicKeyEncG1(c: *mut CipherTextG1, ppub: *const c_void, m: i64) -> c_int;
+    fn shePrecomputedPublicKeyEncG2(c: *mut CipherTextG2, ppub: *const c_void, m: i64) -> c_int;
+    fn shePrecomputedPublicKeyEncGT(c: *mut CipherTextGT, ppub: *const c_void, m: i64) -> c_int;
 }
 
 #[allow(non_camel_case_types)]
@@ -136,12 +143,26 @@ macro_rules! dec_impl {
 }
 
 macro_rules! enc_impl {
-    ($t:ty, $func_name:ident, $class:ident, $enc_fn:ident) => {
-        impl $t {
+    ($func_name:ident, $class:ident, $enc_fn:ident) => {
+        impl PublicKey {
             pub fn $func_name(&self, m: i64) -> $class {
                 let mut v = unsafe { $class::uninit() };
                 unsafe {
                     $enc_fn(&mut v, self, m);
+                }
+                v
+            }
+        }
+    };
+}
+
+macro_rules! penc_impl {
+    ($func_name:ident, $class:ident, $enc_fn:ident) => {
+        impl PrecomputedPublicKey {
+            pub fn $func_name(&self, m: i64) -> $class {
+                let mut v = unsafe { $class::uninit() };
+                unsafe {
+                    $enc_fn(&mut v, self.p, m);
                 }
                 v
             }
@@ -326,6 +347,31 @@ pub struct CipherTextGT {
     pub g: [GT; 4],
 }
 
+#[derive(Debug)] // Don't Clone
+#[repr(C)]
+pub struct PrecomputedPublicKey {
+    p: *mut c_void,
+}
+
+impl PrecomputedPublicKey {
+    pub fn new() -> PrecomputedPublicKey {
+        PrecomputedPublicKey {
+            p: unsafe { shePrecomputedPublicKeyCreate() },
+        }
+    }
+    pub fn init(&mut self, pubkey: *const PublicKey) {
+        unsafe {
+            shePrecomputedPublicKeyInit(self.p, pubkey);
+        }
+    }
+}
+
+impl Drop for PrecomputedPublicKey {
+    fn drop(&mut self) {
+        unsafe { shePrecomputedPublicKeyDestroy(self.p) }
+    }
+}
+
 common_impl![SecretKey, sheSecretKeyIsEqual];
 common_impl![PublicKey, shePublicKeyIsEqual];
 common_impl![CipherTextG1, sheCipherTextG1IsEqual];
@@ -355,9 +401,13 @@ impl SecretKey {
     }
 }
 
-enc_impl![PublicKey, enc_g1, CipherTextG1, sheEncG1];
-enc_impl![PublicKey, enc_g2, CipherTextG2, sheEncG2];
-enc_impl![PublicKey, enc_gt, CipherTextGT, sheEncGT];
+enc_impl![enc_g1, CipherTextG1, sheEncG1];
+enc_impl![enc_g2, CipherTextG2, sheEncG2];
+enc_impl![enc_gt, CipherTextGT, sheEncGT];
+
+penc_impl![enc_g1, CipherTextG1, shePrecomputedPublicKeyEncG1];
+penc_impl![enc_g2, CipherTextG2, shePrecomputedPublicKeyEncG2];
+penc_impl![enc_gt, CipherTextGT, shePrecomputedPublicKeyEncGT];
 
 impl PublicKey {}
 
