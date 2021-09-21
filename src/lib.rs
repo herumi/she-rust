@@ -136,8 +136,8 @@ macro_rules! dec_impl {
 }
 
 macro_rules! enc_impl {
-    ($func_name:ident, $class:ident, $enc_fn:ident) => {
-        impl PublicKey {
+    ($t:ty, $func_name:ident, $class:ident, $enc_fn:ident) => {
+        impl $t {
             pub fn $func_name(&self, m: i64) -> $class {
                 let mut v = unsafe { $class::uninit() };
                 unsafe {
@@ -355,9 +355,9 @@ impl SecretKey {
     }
 }
 
-enc_impl![enc_g1, CipherTextG1, sheEncG1];
-enc_impl![enc_g2, CipherTextG2, sheEncG2];
-enc_impl![enc_gt, CipherTextGT, sheEncGT];
+enc_impl![PublicKey, enc_g1, CipherTextG1, sheEncG1];
+enc_impl![PublicKey, enc_g2, CipherTextG2, sheEncG2];
+enc_impl![PublicKey, enc_gt, CipherTextGT, sheEncGT];
 
 impl PublicKey {}
 
