@@ -1,6 +1,8 @@
 use std::ffi::c_void;
 use std::mem;
 use std::os::raw::c_int;
+use std::path::Path;
+//use std::fs::read;
 
 #[link(name = "mcl", kind = "static")]
 #[link(name = "mclshe384_256", kind = "static")]
@@ -36,6 +38,15 @@ extern "C" {
     fn sheSetRangeForG1DLP(hashSize: usize) -> c_int;
     fn sheSetRangeForG2DLP(hashSize: usize) -> c_int;
     fn sheSetRangeForGTDLP(hashSize: usize) -> c_int;
+    fn sheSaveTableForG1DLP(buf: *mut u8, maxBufSize: usize) -> usize;
+    fn sheSaveTableForG2DLP(buf: *mut u8, maxBufSize: usize) -> usize;
+    fn sheSaveTableForGTDLP(buf: *mut u8, maxBufSize: usize) -> usize;
+    fn sheLoadTableForG1DLP(buf: *const u8, bufSize: usize) -> usize;
+    fn sheLoadTableForG2DLP(buf: *const u8, bufSize: usize) -> usize;
+    fn sheLoadTableForGTDLP(buf: *const u8, bufSize: usize) -> usize;
+    fn sheGetTableSizeForG1DLP() -> usize;
+    fn sheGetTableSizeForG2DLP() -> usize;
+    fn sheGetTableSizeForGTDLP() -> usize;
     fn sheIsZeroG1(sec: *const SecretKey, c: *const CipherTextG1) -> c_int;
     fn sheIsZeroG2(sec: *const SecretKey, c: *const CipherTextG2) -> c_int;
     fn sheIsZeroGT(sec: *const SecretKey, c: *const CipherTextGT) -> c_int;
@@ -459,6 +470,36 @@ pub fn set_range_for_g2_dlp(hash_size: usize) -> bool {
 // make hash_size entry table for GT DLP
 pub fn set_range_for_gt_dlp(hash_size: usize) -> bool {
     unsafe { sheSetRangeForGTDLP(hash_size) == 0 }
+}
+
+// load table for DLP
+pub fn load_table_for_g1_dlp<P: AsRef<Path>>(path: P) -> bool {
+    let buf = match std::fs::read(path) {
+        Err(_) => return false,
+        Ok(buf) => buf,
+    };
+    unsafe { sheLoadTableForG1DLP(buf.as_ptr(), buf.len()) != 0 }
+}
+
+pub fn get_table_size_for_g1_dlp() -> usize {
+    unsafe { sheGetTableSizeForG1DLP() }
+}
+
+const TABLE_MARGIN: usize = 128;
+
+// save table for DLP
+pub fn save_table_for_g1_dlp(path: &Path) -> bool {
+    let n = get_table_size_for_g1_dlp();
+    let bufSize = n * 8 + TABLE_MARGIN;
+    let mut buf: Vec<u8> = Vec::with_capacity(bufSize);
+    let size = unsafe { sheSaveTableForG1DLP(buf.as_mut_ptr(), bufSize) };
+    if size == 0 {
+        return false;
+    }
+    unsafe {
+        buf.set_len(size);
+    }
+    std::fs::write(path, &buf[0..size]).is_ok()
 }
 
 add_impl![add_g1, CipherTextG1, sheAddG1];
