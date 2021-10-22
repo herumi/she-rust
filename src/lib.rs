@@ -472,35 +472,70 @@ pub fn set_range_for_gt_dlp(hash_size: usize) -> bool {
     unsafe { sheSetRangeForGTDLP(hash_size) == 0 }
 }
 
-// load table for DLP
-pub fn load_table_for_g1_dlp<P: AsRef<Path>>(path: P) -> bool {
-    let buf = match std::fs::read(path) {
-        Err(_) => return false,
-        Ok(buf) => buf,
+const TABLE_MARGIN: usize = 128;
+
+macro_rules! save_table_impl {
+    ($func_name:ident, $get_fn:ident, $save_fn:ident) => {
+        pub fn $func_name<P: AsRef<Path>>(path: P) -> bool {
+            let n = $get_fn();
+            let buf_size = n * 8 + TABLE_MARGIN;
+            let mut buf: Vec<u8> = Vec::with_capacity(buf_size);
+            let size = unsafe { $save_fn(buf.as_mut_ptr(), buf_size) };
+            if size == 0 {
+                return false;
+            }
+            unsafe {
+                buf.set_len(size);
+            }
+            std::fs::write(path, &buf[0..size]).is_ok()
+        }
     };
-    unsafe { sheLoadTableForG1DLP(buf.as_ptr(), buf.len()) != 0 }
 }
 
+macro_rules! load_table_impl {
+    ($func_name:ident, $load_fn:ident) => {
+        pub fn $func_name<P: AsRef<Path>>(path: P) -> bool {
+            let buf = match std::fs::read(path) {
+                Err(_) => return false,
+                Ok(buf) => buf,
+            };
+            unsafe { $load_fn(buf.as_ptr(), buf.len()) != 0 }
+        }
+    };
+}
+
+// load table for G1 DLP
+load_table_impl![load_table_for_g1_dlp, sheLoadTableForG1DLP];
+load_table_impl![load_table_for_g2_dlp, sheLoadTableForG2DLP];
+load_table_impl![load_table_for_gt_dlp, sheLoadTableForGTDLP];
+
+// get table size for G1 DLP
 pub fn get_table_size_for_g1_dlp() -> usize {
     unsafe { sheGetTableSizeForG1DLP() }
 }
-
-const TABLE_MARGIN: usize = 128;
-
-// save table for DLP
-pub fn save_table_for_g1_dlp(path: &Path) -> bool {
-    let n = get_table_size_for_g1_dlp();
-    let bufSize = n * 8 + TABLE_MARGIN;
-    let mut buf: Vec<u8> = Vec::with_capacity(bufSize);
-    let size = unsafe { sheSaveTableForG1DLP(buf.as_mut_ptr(), bufSize) };
-    if size == 0 {
-        return false;
-    }
-    unsafe {
-        buf.set_len(size);
-    }
-    std::fs::write(path, &buf[0..size]).is_ok()
+pub fn get_table_size_for_g2_dlp() -> usize {
+    unsafe { sheGetTableSizeForG2DLP() }
 }
+pub fn get_table_size_for_gt_dlp() -> usize {
+    unsafe { sheGetTableSizeForGTDLP() }
+}
+
+// save table for G1 DLP
+save_table_impl![
+    save_table_for_g1_dlp,
+    get_table_size_for_g1_dlp,
+    sheSaveTableForG1DLP
+];
+save_table_impl![
+    save_table_for_g2_dlp,
+    get_table_size_for_g2_dlp,
+    sheSaveTableForG2DLP
+];
+save_table_impl![
+    save_table_for_gt_dlp,
+    get_table_size_for_gt_dlp,
+    sheSaveTableForGTDLP
+];
 
 add_impl![add_g1, CipherTextG1, sheAddG1];
 add_impl![add_g2, CipherTextG2, sheAddG2];
