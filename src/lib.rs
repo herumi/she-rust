@@ -421,15 +421,6 @@ pub fn mul(c1: &CipherTextG1, c2: &CipherTextG2) -> CipherTextGT {
     v
 }
 
-/*
-serialize_impl![
-    Fp,
-    mclBn_getFpByteSize(),
-    mclBnFp_serialize,
-    mclBnFp_deserialize
-];
-*/
-
 // for 2 level homomorphic encryption (curve = BN254 or BLS12_381)
 pub fn init(curve: CurveType) -> bool {
     unsafe { sheInit(curve as c_int, MCLBN_COMPILED_TIME_VAR) == 0 }
